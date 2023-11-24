@@ -46,6 +46,12 @@ func main() {
 		return c.JSON(&fiber.Map{"data": "Usuarios desde el backend"})
 	})
 
+	app.Post("/users", func(c *fiber.Ctx) error {
+		return c.JSON(&fiber.Map{
+			"data": "Creando Usuario",
+		})
+	})
+
 	//Listening Port
 	app.Listen(":" + port)
 	fmt.Println("Server on port " + port)
