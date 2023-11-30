@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Raulcudris/go-react-crud/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -28,12 +29,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//si la base de Datos con mongo conecta hacemos una consulta
-	coll := client.Database("gomongodb").Collection("users")
-	coll.InsertOne(context.TODO(), bson.D{{
-		Key:   "name",
-		Value: "Raul Cudris",
-	}})
 
 	//Uso de los Cors(Permisos en los navegadores )
 	app.Use(cors.New())
@@ -41,14 +36,43 @@ func main() {
 	//Direccion para la llamada a el Front
 	app.Static("/", "./client/dist")
 
-	//Creacion de un Endpoint para la llamada a el Front
-	app.Get("/users", func(c *fiber.Ctx) error {
-		return c.JSON(&fiber.Map{"data": "Usuarios desde el backend"})
+	app.Post("/users", func(c *fiber.Ctx) error {
+		var user models.User
+		c.BodyParser(&user)
+		//si la base de Datos con mongo conecta hacemos una consulta
+		coll := client.Database("gomongodb").Collection("users")
+		result, err := coll.InsertOne(context.TODO(), bson.D{{
+			Key:   "name",
+			Value: user.Name,
+		}})
+
+		if err != nil {
+			panic(err)
+		}
+
+		return c.JSON(&fiber.Map{
+			"data": result,
+		})
 	})
 
-	app.Post("/users", func(c *fiber.Ctx) error {
+	//Creacion de un Endpoint para la llamada a el Front
+	app.Get("/users", func(c *fiber.Ctx) error {
+		var users []models.User
+		coll := client.Database("gomongodb").Collection("users")
+		results, err := coll.Find(context.TODO(), bson.M{})
+
+		if err != nil {
+			panic(err)
+		}
+
+		for results.Next(context.TODO()) {
+			var user models.User
+			results.Decode(&user)
+			users = append(users, user)
+		}
+
 		return c.JSON(&fiber.Map{
-			"data": "Creando Usuario",
+			"data": users,
 		})
 	})
 
